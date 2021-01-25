@@ -1,0 +1,62 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "react",
+    "@typescript-eslint",
+    "office-addins"
+  ],
+  "parserOptions": {
+    "ecmaVersion": 6,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    },
+    "project": "./tsconfig.json"
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended",
+    "airbnb",
+    "plugin:jsx-a11y/recommended",
+    "plugin:office-addins/react",
+  ],
+  "globals": {
+    "Excel": true,
+    "Office": true,
+    "document": true
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    },
+    "import/resolver": {
+      "node": {
+        "extensions": [
+          ".js",
+          ".jsx",
+          ".ts",
+          ".tsx",
+          ".d.ts"
+        ]
+      }
+    }
+  },
+  "rules": {
+    "import/extensions": ["error", { "js": "never", "ts": "never" }],
+    "no-nested-ternary": ["off"],
+    "react/prop-types": ["off"],
+    "react/jsx-one-expression-per-line": ["off"],
+    "react/jsx-filename-extension": [2, { "extensions": [".jsx", ".tsx"] }]
+  },
+  "overrides": [
+    {
+      "files": ["webpack.config.js"],
+      "env": { "node": true },
+      "rules": {
+        "@typescript-eslint/no-var-requires": ["off"],
+        "@typescript-eslint/explicit-function-return-type": ["off"]
+      }
+    }
+  ]
+}
