@@ -1,14 +1,32 @@
-import React, { FC } from 'react';
+import React, {
+  FC, useState, useMemo, useEffect,
+} from 'react';
 import styled from 'styled-components';
 import { useIntl } from 'react-intl';
-import { DefaultButton } from 'office-ui-fabric-react';
-import Header from '../components/Header';
-import { getNamedRanges } from '../excelUtils';
+import {
+  DefaultButton, DialogFooter,
+} from 'office-ui-fabric-react';
+import {
+  Header, Modal, Progress, HeroList,
+} from '../components';
+import {
+  exportNamedRangesToWorksheet,
+  validateNamedRanges,
+  NamedRangeType,
+} from '../excelUtils';
 
 // images references in the manifest
 import '../../../assets/icon-16.png';
 import '../../../assets/icon-32.png';
 import '../../../assets/icon-80.png';
+
+const LoadingModal = styled<{isLoading: boolean}>(Progress)`
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: rgba(255, 255, 255, 0.5);
+  ${(props) => !props.isLoading && 'display: none;'}
+`;
 
 const MainWrapper = styled.main`
   display: flex;
@@ -36,29 +54,153 @@ const FullwidthButton = styled(DefaultButton)`
   margin: 0.5rem;
 `;
 
+const InvalidNamedRangeListWrapper = styled.div`
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: ${(props) => props.theme.color.background};
+  padding: 0 1rem;
+`;
+
 const Home: FC = () => {
   const intl = useIntl();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const onClick = async (): Promise<void> => {
-    try {
-      await Excel.run(async (context) => {
-        /**
-         * Insert your Excel code here
-         */
-        const range = context.workbook.getSelectedRange();
+  /**
+   * Add Named Ranges Modal
+   */
+  const [isAddNameModalOpen, setIsAddNameModalOpen] = useState(false);
 
-        // Read the range address
-        range.load('address');
+  const showAddNamesModal = (): void => {
+    setIsAddNameModalOpen(true);
+  };
 
-        // Update the fill color
-        range.format.fill.color = 'yellow';
+  const hideAddNamesModal = (): void => {
+    setIsAddNameModalOpen(false);
+  };
 
-        await context.sync();
-        console.log(`The range address was ${range.address}.`);
-      });
-    } catch (error) {
-      console.error(error);
+  const addNamesModal = (
+    <Modal
+      onDismiss={hideAddNamesModal}
+      title="Add Names"
+      isOpen={isAddNameModalOpen}
+      modalId="addNameModal"
+      isClosable
+    >
+      To-Do
+    </Modal>
+  );
+
+  /**
+   * Error Dialog
+   */
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
+
+  useEffect(() => {
+    setIsErrorDialogOpen(!!errorMessage);
+  }, [errorMessage]);
+
+  const hideErrorDialog = (): void => {
+    setErrorMessage('');
+  };
+
+  const errorDialog = (
+    <Modal
+      onDismiss={hideErrorDialog}
+      title={intl.formatMessage({ id: 'app.error.title' })}
+      isOpen={isErrorDialogOpen}
+      modalId="validateModal"
+      theme="failure"
+    >
+      <p>{errorMessage}</p>
+
+      <DialogFooter>
+        <DefaultButton onClick={hideErrorDialog} text={intl.formatMessage({ id: 'app.modal.ok' })} />
+      </DialogFooter>
+    </Modal>
+  );
+
+  /**
+   * Export Named Ranges to excel worksheet
+   */
+  const exportNamedRanges = async (): Promise<void> => {
+    setIsLoading(true);
+    const { success: isSuccess, errorCode } = await exportNamedRangesToWorksheet();
+    if (!isSuccess) {
+      setErrorMessage(intl.formatMessage({ id: 'app.function.export.error' }, { ERROR_CODE: errorCode }));
     }
+    setIsLoading(false);
+  };
+
+  /**
+   * Vaidate Name ranges
+   */
+  const [isValidateNamedRangesDialogOpen, setIsValidateNamedRangesDialogOpen] = useState(false);
+  const [invalidNamedRanges, setInvalidNameRanges] = useState<NamedRangeType[]>([]);
+
+  const validateAndShowInvalidNamedRanges = async (): Promise<void> => {
+    setIsLoading(true);
+    const {
+      success: isSuccess, errorCode, invalidNamedRanges: names,
+    } = await validateNamedRanges();
+
+    if (!isSuccess) {
+      setErrorMessage(intl.formatMessage({ id: 'app.function.validate.error' }, { ERROR_CODE: errorCode }));
+      setIsLoading(false);
+      return;
+    }
+
+    setIsValidateNamedRangesDialogOpen(true);
+    setInvalidNameRanges(names);
+    setIsLoading(false);
+  };
+
+  const hideValidateNameRangesDialog = (): void => {
+    setIsValidateNamedRangesDialogOpen(false);
+  };
+
+  const invalidNamedRangesList = useMemo(() => invalidNamedRanges.map(({ name }) => (
+    { icon: 'IncidentTriangle', primaryText: name }
+  )), [invalidNamedRanges]);
+
+  const validateNamedRangesDialog = (
+    <Modal
+      onDismiss={hideValidateNameRangesDialog}
+      title={intl.formatMessage({ id: 'app.function.validate' })}
+      isOpen={isValidateNamedRangesDialogOpen}
+      modalId="validateModal"
+      theme={invalidNamedRanges.length ? 'failure' : 'success'}
+    >
+      <p>
+        {invalidNamedRanges.length
+          ? intl.formatMessage(
+            { id: `app.function.validate.failed.${invalidNamedRanges.length > 1 ? 'other' : 'one'}` },
+            { COUNT: invalidNamedRanges.length },
+          )
+          : intl.formatMessage({ id: 'app.function.validate.success' })}
+      </p>
+
+      {
+        invalidNamedRanges.length
+          ? (
+            <InvalidNamedRangeListWrapper>
+              <HeroList items={invalidNamedRangesList} />
+            </InvalidNamedRangeListWrapper>
+          )
+          : null
+      }
+
+      <DialogFooter>
+        <DefaultButton onClick={hideValidateNameRangesDialog} text={intl.formatMessage({ id: 'app.modal.ok' })} />
+      </DialogFooter>
+    </Modal>
+  );
+
+  /**
+   * Vaidate Name ranges
+   */
+  const editNamedRanges = async (): Promise<void> => {
+    // TODO: write something
   };
 
   return (
@@ -73,23 +215,33 @@ const Home: FC = () => {
         <Description>{intl.formatMessage({ id: 'app.home.description' })}</Description>
         <FullwidthButton
           iconProps={{ iconName: 'Download' }}
-          onClick={getNamedRanges}
+          onClick={exportNamedRanges}
         >
           {intl.formatMessage({ id: 'app.function.export' })}
         </FullwidthButton>
         <FullwidthButton
           iconProps={{ iconName: 'PageAdd' }}
-          onClick={onClick}
+          onClick={showAddNamesModal}
         >
           {intl.formatMessage({ id: 'app.function.add' })}
         </FullwidthButton>
         <FullwidthButton
           iconProps={{ iconName: 'PageEdit' }}
-          onClick={onClick}
+          onClick={editNamedRanges}
         >
           {intl.formatMessage({ id: 'app.function.edit' })}
         </FullwidthButton>
+        <FullwidthButton
+          iconProps={{ iconName: 'Zoom' }}
+          onClick={validateAndShowInvalidNamedRanges}
+        >
+          {intl.formatMessage({ id: 'app.function.validate' })}
+        </FullwidthButton>
       </MainWrapper>
+      <LoadingModal isLoading={isLoading} message="Loading..." />
+      {addNamesModal}
+      {errorDialog}
+      {validateNamedRangesDialog}
     </div>
   );
 };

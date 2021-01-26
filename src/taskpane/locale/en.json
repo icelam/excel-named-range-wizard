@@ -3,7 +3,16 @@
   "app.home.welcome": "Hi there 👋",
   "app.home.tagline": "What do you want to do today?",
   "app.home.description": "Click on any of the buttons below to feel the magic!",
-  "app.function.export": "Export existing names",
-  "app.function.add": "Add names",
-  "app.function.edit": "Edit existing names"
+  "app.function.export": "Export Names",
+  "app.function.export.error": "Failed to export named ranges. Please retry again. (Error code: {ERROR_CODE})",
+  "app.function.add": "Add Names",
+  "app.function.edit": "Edit Names",
+  "app.function.validate": "Validate Names",
+  "app.function.validate.error": "Failed to validate named ranges. Please retry again. (Error code: {ERROR_CODE})",
+  "app.function.validate.success": "No invalid named ranges found in this workbook. Hurray!",
+  "app.function.validate.failed.one": "There is {COUNT} invalid named range found in this workbook:",
+  "app.function.validate.failed.other": "There are {COUNT} invalid named ranges found in this workbook:",
+  "app.modal.ok": "OK",
+  "app.modal.close": "Close",
+  "app.error.title": "Unexpected Error"
 }

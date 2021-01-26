@@ -4,6 +4,7 @@ import { Spinner, SpinnerType } from 'office-ui-fabric-react';
 
 export interface ProgressProps {
   message: string;
+  className?: string;
 }
 
 const Wrapper = styled.div`
@@ -15,8 +16,8 @@ const Wrapper = styled.div`
   height: 100%;
 `;
 
-const Progress: FC<ProgressProps> = ({ message }) => (
-  <Wrapper>
+const Progress: FC<ProgressProps> = ({ message, className }) => (
+  <Wrapper className={className}>
     <Spinner type={SpinnerType.large} label={message} />
   </Wrapper>
 );
