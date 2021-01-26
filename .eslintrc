@@ -5,6 +5,7 @@
     "@typescript-eslint",
     "office-addins"
   ],
+  "env": { "node": true, "browser": true },
   "parserOptions": {
     "ecmaVersion": 6,
     "sourceType": "module",

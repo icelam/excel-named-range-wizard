@@ -7,26 +7,8 @@ export interface HeroListItem {
 }
 
 export interface HeroListProps {
-  message: string;
   items: HeroListItem[];
 }
-
-const MainWrapper = styled.main`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  align-items: center;
-  flex: 1 0 0;
-  padding: 0.625rem 1.25rem;
-`;
-
-const Title = styled.h2`
-  width: 100%;
-  text-align: center;
-  font-size: 1.3125rem;
-  font-weight: 300;
-  color: #333333;
-`;
 
 const UnorderList = styled.ul`
   margin: 0;
@@ -49,7 +31,7 @@ const UnorderList = styled.ul`
   }
 `;
 
-const HeroList: FC<HeroListProps> = ({ children, items, message }) => {
+const HeroList: FC<HeroListProps> = ({ items }) => {
   const listItems = items.map((item) => (
     <li key={item.primaryText}>
       <i className={`ms-Icon ms-Icon--${item.icon}`} />
@@ -57,13 +39,7 @@ const HeroList: FC<HeroListProps> = ({ children, items, message }) => {
     </li>
   ));
 
-  return (
-    <MainWrapper>
-      <Title>{message}</Title>
-      <UnorderList>{listItems}</UnorderList>
-      {children}
-    </MainWrapper>
-  );
+  return <UnorderList>{listItems}</UnorderList>;
 };
 
 export default HeroList;

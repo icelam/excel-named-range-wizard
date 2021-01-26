@@ -9,7 +9,7 @@ export interface HeaderProps {
 
 const HeaderSection = styled.section`
   padding: 1.25rem;
-  padding: 2.5rem 0.5rem;
+  padding: 2.5rem 1.25rem;
   display: flex;
   flex-direction: column;
   align-items: center;

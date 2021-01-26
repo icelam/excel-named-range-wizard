@@ -1,30 +1,43 @@
-import React, { FC, useMemo } from 'react';
+import React, { FC } from 'react';
+import styled from 'styled-components';
 import { useIntl } from 'react-intl';
-import { Button, ButtonType } from 'office-ui-fabric-react';
+import { DefaultButton } from 'office-ui-fabric-react';
 import Header from '../components/Header';
-import HeroList, { HeroListItem } from '../components/HeroList';
+import { getNamedRanges } from '../excelUtils';
 
 // images references in the manifest
 import '../../../assets/icon-16.png';
 import '../../../assets/icon-32.png';
 import '../../../assets/icon-80.png';
 
+const MainWrapper = styled.main`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: center;
+  flex: 1 0 0;
+  padding: 0.625rem 1.25rem;
+`;
+
+const Title = styled.h2`
+  width: 100%;
+  text-align: center;
+  font-size: 1.3125rem;
+  font-weight: 300;
+`;
+
+const Description = styled.p`
+  text-align: center;
+  font-size: 0.75rem;
+`;
+
+const FullwidthButton = styled(DefaultButton)`
+  width: 100%;
+  margin: 0.5rem;
+`;
+
 const Home: FC = () => {
   const intl = useIntl();
-  const listItems: HeroListItem[] = useMemo(() => [
-    {
-      icon: 'Ribbon',
-      primaryText: 'Lorem Ipsum',
-    },
-    {
-      icon: 'Unlock',
-      primaryText: 'Lorem Ipsum',
-    },
-    {
-      icon: 'Design',
-      primaryText: 'Lorem Ipsum',
-    },
-  ], []);
 
   const onClick = async (): Promise<void> => {
     try {
@@ -53,20 +66,30 @@ const Home: FC = () => {
       <Header
         logo="assets/logo-filled.png"
         title={intl.formatMessage({ id: 'app.name' })}
-        message={intl.formatMessage({ id: 'app.welcome' })}
+        message={intl.formatMessage({ id: 'app.home.welcome' })}
       />
-      <HeroList message={intl.formatMessage({ id: 'app.home.tagline' })} items={listItems}>
-        <p>
-          Modify the source files, then click <b>Run</b>.
-        </p>
-        <Button
-          buttonType={ButtonType.hero}
-          iconProps={{ iconName: 'ChevronRight' }}
+      <MainWrapper>
+        <Title>{intl.formatMessage({ id: 'app.home.tagline' })}</Title>
+        <Description>{intl.formatMessage({ id: 'app.home.description' })}</Description>
+        <FullwidthButton
+          iconProps={{ iconName: 'Download' }}
+          onClick={getNamedRanges}
+        >
+          {intl.formatMessage({ id: 'app.function.export' })}
+        </FullwidthButton>
+        <FullwidthButton
+          iconProps={{ iconName: 'PageAdd' }}
           onClick={onClick}
         >
-          Run
-        </Button>
-      </HeroList>
+          {intl.formatMessage({ id: 'app.function.add' })}
+        </FullwidthButton>
+        <FullwidthButton
+          iconProps={{ iconName: 'PageEdit' }}
+          onClick={onClick}
+        >
+          {intl.formatMessage({ id: 'app.function.edit' })}
+        </FullwidthButton>
+      </MainWrapper>
     </div>
   );
 };

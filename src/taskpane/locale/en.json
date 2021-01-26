@@ -1,5 +1,9 @@
 {
   "app.name": "Named Range Wizard",
-  "app.welcome": "Hi there 👋",
-  "app.home.tagline": "What do you want to do today?"
+  "app.home.welcome": "Hi there 👋",
+  "app.home.tagline": "What do you want to do today?",
+  "app.home.description": "Click on any of the buttons below to feel the magic!",
+  "app.function.export": "Export existing names",
+  "app.function.add": "Add names",
+  "app.function.edit": "Edit existing names"
 }
