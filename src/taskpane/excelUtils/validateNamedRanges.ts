@@ -1,4 +1,4 @@
-import { getNamedRanges, NamedRangeType } from './getNamedRanges';
+import { getNamedRanges, NamedRangeType } from './common';
 
 const validateNamedRanges = async (): Promise<{
   success: boolean;

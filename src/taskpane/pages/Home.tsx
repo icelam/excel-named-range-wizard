@@ -7,12 +7,16 @@ import {
   DefaultButton, DialogFooter,
 } from 'office-ui-fabric-react';
 import {
-  Header, Modal, Progress, HeroList,
+  Header, Modal, Progress, HeroList, HeroListItem,
 } from '../components';
 import {
   exportNamedRangesToWorksheet,
   validateNamedRanges,
   NamedRangeType,
+  insertAddNamedRangesForm,
+  deleteAddNamedRangeForm,
+  addNamedRange,
+  NamedRangeValidationResult,
 } from '../excelUtils';
 
 // images references in the manifest
@@ -54,7 +58,7 @@ const FullwidthButton = styled(DefaultButton)`
   margin: 0.5rem;
 `;
 
-const InvalidNamedRangeListWrapper = styled.div`
+const ModalDetailsWrapper = styled.div`
   max-height: 200px;
   overflow-y: auto;
   background-color: ${(props) => props.theme.color.background};
@@ -64,31 +68,6 @@ const InvalidNamedRangeListWrapper = styled.div`
 const Home: FC = () => {
   const intl = useIntl();
   const [isLoading, setIsLoading] = useState(false);
-
-  /**
-   * Add Named Ranges Modal
-   */
-  const [isAddNameModalOpen, setIsAddNameModalOpen] = useState(false);
-
-  const showAddNamesModal = (): void => {
-    setIsAddNameModalOpen(true);
-  };
-
-  const hideAddNamesModal = (): void => {
-    setIsAddNameModalOpen(false);
-  };
-
-  const addNamesModal = (
-    <Modal
-      onDismiss={hideAddNamesModal}
-      title="Add Names"
-      isOpen={isAddNameModalOpen}
-      modalId="addNameModal"
-      isClosable
-    >
-      To-Do
-    </Modal>
-  );
 
   /**
    * Error Dialog
@@ -133,10 +112,179 @@ const Home: FC = () => {
   };
 
   /**
+   * Add Named Ranges Modal
+   */
+  const [isAddNameModalOpen, setIsAddNameModalOpen] = useState(false);
+  const [
+    addNameErrorCode,
+    setAddNameErrorCode,
+  ] = useState<'' | 'InvalidInput' | 'FailedToAdd' | 'NothingToAdd'>('');
+  const [
+    addNameValidationResult,
+    setAddNameValidationResult,
+  ] = useState<NamedRangeValidationResult[]>([]);
+  const [isAddNameSuccess, setIsAddNameSuccess] = useState(false);
+
+  const showAddNamesModal = async (): Promise<void> => {
+    setIsLoading(true);
+    const { success: isInsertSuccess, errorCode } = await insertAddNamedRangesForm();
+    if (!isInsertSuccess) {
+      setErrorMessage(intl.formatMessage({ id: 'app.function.add.error.insertForm' }, { ERROR_CODE: errorCode }));
+      setIsLoading(false);
+      return;
+    }
+    setIsAddNameModalOpen(true);
+    setIsLoading(false);
+  };
+
+  const hideAddNamesModal = async (shouldDeleteWorkSheet = true): Promise<void> => {
+    setIsAddNameModalOpen(false);
+    setAddNameErrorCode('');
+    setAddNameValidationResult([]);
+    setIsAddNameSuccess(false);
+    setIsLoading(true);
+    if (shouldDeleteWorkSheet) {
+      await deleteAddNamedRangeForm();
+    }
+    setIsLoading(false);
+  };
+
+  const closeAddNameSuccessModal = (): void => {
+    hideAddNamesModal(false);
+  };
+
+  const discardAddNameChanges = (): void => {
+    hideAddNamesModal(true);
+  };
+
+  const addNewNames = async (): Promise<void> => {
+    const { success: isSuccess, errorCode, validationResult } = await addNamedRange();
+    if (!isSuccess) {
+      if (errorCode === 'FailedToAdd' || errorCode === 'InvalidInput' || errorCode === 'NothingToAdd') {
+        setAddNameErrorCode(errorCode);
+        setAddNameValidationResult(validationResult);
+        return;
+      }
+
+      setErrorMessage(intl.formatMessage({ id: 'app.function.add.error' }, { ERROR_CODE: errorCode }));
+      await hideAddNamesModal();
+      return;
+    }
+
+    await deleteAddNamedRangeForm();
+    setIsAddNameSuccess(true);
+  };
+
+  const addNameHowTo = (
+    <>
+      <p>{intl.formatMessage({ id: 'app.function.add.howTo' })}</p>
+      <ModalDetailsWrapper>
+        <HeroList
+          items={Array.from({ length: 7 }, (_, index) => ({
+            primaryText: intl.formatMessage({ id: `app.function.add.tips${index + 1}` }),
+            icon: 'RadioBullet',
+          }))}
+        />
+      </ModalDetailsWrapper>
+      <DialogFooter>
+        <DefaultButton onClick={discardAddNameChanges} text={intl.formatMessage({ id: 'app.modal.cancel' })} />
+        <DefaultButton onClick={addNewNames} text={intl.formatMessage({ id: 'app.modal.add' })} />
+      </DialogFooter>
+    </>
+  );
+
+  const addNameErrorDetailsList = useMemo(() => {
+    if (addNameErrorCode === 'InvalidInput') {
+      const errorList: HeroListItem[] = [];
+
+      if (!addNameValidationResult.every(({ validations }) => validations.isNameNonEmpty)) {
+        errorList.push({
+          primaryText: intl.formatMessage({ id: 'app.function.add.error.missingName' }),
+          icon: 'IncidentTriangle',
+        });
+      }
+
+      addNameValidationResult.forEach(({ name, validations }) => {
+        if (name && !validations.isNameValid) {
+          errorList.push({
+            primaryText: intl.formatMessage({ id: 'app.function.add.error.invalidName' }, { NAME: name }),
+            icon: 'IncidentTriangle',
+          });
+        }
+
+        if (name && !validations.isFormulaNonEmpty) {
+          errorList.push({
+            primaryText: intl.formatMessage({ id: 'app.function.add.error.missingFormula' }, { NAME: name }),
+            icon: 'IncidentTriangle',
+          });
+        }
+      });
+
+      return errorList;
+    }
+
+    if (addNameErrorCode === 'FailedToAdd') {
+      return addNameValidationResult.map(({ name, runtimeError }) => ({
+        primaryText: `${name}: ${runtimeError}`,
+        icon: 'IncidentTriangle',
+      }));
+    }
+
+    return [];
+  }, [addNameValidationResult, addNameErrorCode]);
+
+  const addNameErrorDetails = (
+    <>
+      <p>{intl.formatMessage({ id: `app.function.add.error.${addNameErrorCode}` })}</p>
+      {
+        addNameValidationResult.length
+          ? (
+            <ModalDetailsWrapper>
+              <HeroList items={addNameErrorDetailsList} />
+            </ModalDetailsWrapper>
+          )
+          : null
+      }
+      <DialogFooter>
+        <DefaultButton onClick={discardAddNameChanges} text={intl.formatMessage({ id: 'app.modal.cancel' })} />
+        <DefaultButton onClick={addNewNames} text={intl.formatMessage({ id: 'app.modal.retry' })} />
+      </DialogFooter>
+    </>
+  );
+
+  const addNameSuccessMessage = (
+    <>
+      <p>{intl.formatMessage({ id: 'app.function.add.success' })}</p>
+      <DialogFooter>
+        <DefaultButton onClick={closeAddNameSuccessModal} text={intl.formatMessage({ id: 'app.modal.ok' })} />
+      </DialogFooter>
+    </>
+  );
+
+  const addNamesModal = (
+    <Modal
+      onDismiss={discardAddNameChanges}
+      title={intl.formatMessage({ id: 'app.function.add' })}
+      isOpen={isAddNameModalOpen}
+      modalId="addNameModal"
+      isClosable={false}
+      theme={isAddNameSuccess ? 'success' : addNameErrorCode ? 'failure' : undefined}
+    >
+      {
+        isAddNameSuccess
+          ? addNameSuccessMessage
+          : addNameErrorCode
+            ? addNameErrorDetails
+            : addNameHowTo
+      }
+    </Modal>
+  );
+
+  /**
    * Vaidate Name ranges
    */
   const [isValidateNamedRangesDialogOpen, setIsValidateNamedRangesDialogOpen] = useState(false);
-  const [invalidNamedRanges, setInvalidNameRanges] = useState<NamedRangeType[]>([]);
+  const [invalidNamedRanges, setInvalidNamedRanges] = useState<NamedRangeType[]>([]);
 
   const validateAndShowInvalidNamedRanges = async (): Promise<void> => {
     setIsLoading(true);
@@ -151,11 +299,11 @@ const Home: FC = () => {
     }
 
     setIsValidateNamedRangesDialogOpen(true);
-    setInvalidNameRanges(names);
+    setInvalidNamedRanges(names);
     setIsLoading(false);
   };
 
-  const hideValidateNameRangesDialog = (): void => {
+  const hideValidateNamedRangesDialog = (): void => {
     setIsValidateNamedRangesDialogOpen(false);
   };
 
@@ -165,7 +313,7 @@ const Home: FC = () => {
 
   const validateNamedRangesDialog = (
     <Modal
-      onDismiss={hideValidateNameRangesDialog}
+      onDismiss={hideValidateNamedRangesDialog}
       title={intl.formatMessage({ id: 'app.function.validate' })}
       isOpen={isValidateNamedRangesDialogOpen}
       modalId="validateModal"
@@ -183,15 +331,15 @@ const Home: FC = () => {
       {
         invalidNamedRanges.length
           ? (
-            <InvalidNamedRangeListWrapper>
+            <ModalDetailsWrapper>
               <HeroList items={invalidNamedRangesList} />
-            </InvalidNamedRangeListWrapper>
+            </ModalDetailsWrapper>
           )
           : null
       }
 
       <DialogFooter>
-        <DefaultButton onClick={hideValidateNameRangesDialog} text={intl.formatMessage({ id: 'app.modal.ok' })} />
+        <DefaultButton onClick={hideValidateNamedRangesDialog} text={intl.formatMessage({ id: 'app.modal.ok' })} />
       </DialogFooter>
     </Modal>
   );

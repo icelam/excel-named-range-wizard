@@ -16,7 +16,8 @@
     "esModuleInterop": true,
     "lib": [
       "es7",
-      "dom"
+      "dom",
+      "es2019.array"
     ],
     "pretty": true,
     "typeRoots": [

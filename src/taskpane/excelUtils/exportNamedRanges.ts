@@ -1,4 +1,6 @@
-import { getNamedRanges } from './getNamedRanges';
+import { getNamedRanges } from './common';
+
+const WORKSHEET_NAME = 'Existing Names';
 
 const exportNamedRangesToWorksheet = async (): Promise<{
   success: boolean;
@@ -6,7 +8,6 @@ const exportNamedRangesToWorksheet = async (): Promise<{
   count: number;
 }> => {
   const status = await Excel.run(async (context) => {
-    const SHEET_NAME = 'Existing Names';
     const namesMap = await getNamedRanges();
 
     if (namesMap === null) {
@@ -15,29 +16,36 @@ const exportNamedRangesToWorksheet = async (): Promise<{
 
     const rows = namesMap.items.map(({
       name, formula, type, scope,
-    }, index) => [index + 1, name, `'${formula}`, type, scope]);
+    }, index) => [index + 1, name, formula, type, scope]);
+
     const values = [
       ['ID', 'Name', 'Formula', 'Type', 'Scope'],
       ...rows,
     ];
 
-    let sheet;
+    const worksheetToCreate = context.workbook.worksheets.getItemOrNullObject(WORKSHEET_NAME);
+    await context.sync();
 
-    try {
-      sheet = context.workbook.worksheets.getItem(SHEET_NAME);
+    let sheet: Excel.Worksheet;
+
+    if (!worksheetToCreate.isNullObject) {
+      sheet = context.workbook.worksheets.getItem(WORKSHEET_NAME);
       sheet.activate();
       sheet.getRange().clear();
       await context.sync();
-    } catch (error) {
-      // ItemNotFound
-      sheet = context.workbook.worksheets.add(SHEET_NAME);
+    } else {
+      sheet = context.workbook.worksheets.add(WORKSHEET_NAME);
       sheet.activate();
       await context.sync();
     }
 
     const range = sheet.getRange('B2').getResizedRange(values.length - 1, values[0].length - 1);
+
+    // Format cell to "Text"
+    range.numberFormat = [['@']];
+
+    // Write values
     range.values = values;
-    sheet.getRange('A1').format.columnWidth = 18;
 
     // Cell borders
     range.format.borders.getItem('InsideHorizontal').style = 'Continuous';
@@ -47,16 +55,15 @@ const exportNamedRangesToWorksheet = async (): Promise<{
     range.format.borders.getItem('EdgeRight').style = 'Continuous';
     range.format.borders.getItem('EdgeTop').style = 'Continuous';
 
-    // Header Styles
+    // Header styles
     const headerRange = range.getRow(0);
     headerRange.format.font.bold = true;
     headerRange.format.font.color = '#ffffff';
     headerRange.format.fill.color = '#201A3D';
 
-    // Column Width
-    [18, 300, 300, 100, 100].forEach((width, index) => {
-      range.getColumn(index).format.columnWidth = width;
-    });
+    // Column width
+    sheet.getRange('A1').format.columnWidth = 18;
+    range.format.autofitColumns();
 
     // Error styles
     rows.filter((row) => row[3] === 'Error').forEach((row) => {
