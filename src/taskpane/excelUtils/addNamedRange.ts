@@ -2,6 +2,10 @@ import {
   insertForm, deleteForm, validateNamedRangesName, addFormTemplate,
 } from './common';
 
+const WORKSHEET_NAME = 'Add Names Wizard';
+const FORM_NAMED_RANGE = 'ADD_NAMED_RANGE_FORM';
+const FORM_NAMED_RANGE_ADDRESS = '$E2:$F9999';
+
 export interface NamedRangeValidationResult {
   name: string;
   formula: string;
@@ -13,14 +17,11 @@ export interface NamedRangeValidationResult {
   runtimeError: string;
 }
 
-const WORKSHEET_NAME = 'Add Names Wizard';
-const FORM_NAMED_RANGE = 'ADD_NAMED_RANGE_FORM';
-
 export const insertAddNamedRangesForm = async (): Promise<{
   success: boolean;
   errorCode: string;
 }> => {
-  const result = await insertForm(WORKSHEET_NAME, FORM_NAMED_RANGE);
+  const result = await insertForm(WORKSHEET_NAME, FORM_NAMED_RANGE, FORM_NAMED_RANGE_ADDRESS);
   return result;
 };
 
@@ -96,6 +97,8 @@ export const addNamedRange = async (): Promise<{
     }
 
     if (failedOperation.length) {
+      range.clear();
+      await context.sync();
       await addFormTemplate(WORKSHEET_NAME, FORM_NAMED_RANGE);
 
       const values = failedOperation.map(({ name, formula }) => [name, formula]);

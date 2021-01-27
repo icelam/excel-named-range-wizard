@@ -17,6 +17,10 @@ import {
   deleteAddNamedRangeForm,
   addNamedRange,
   NamedRangeValidationResult,
+  insertEditNamedRangesForm,
+  deleteEditNamedRangeForm,
+  editNamedRange,
+  EditNamedRangesOperationResult,
 } from '../excelUtils';
 
 // images references in the manifest
@@ -114,16 +118,16 @@ const Home: FC = () => {
   /**
    * Add Named Ranges Modal
    */
-  const [isAddNameModalOpen, setIsAddNameModalOpen] = useState(false);
+  const [isAddNamesModalOpen, setIsAddNamesModalOpen] = useState(false);
   const [
-    addNameErrorCode,
-    setAddNameErrorCode,
+    addNamesErrorCode,
+    setAddNamesErrorCode,
   ] = useState<'' | 'InvalidInput' | 'FailedToAdd' | 'NothingToAdd'>('');
   const [
-    addNameValidationResult,
-    setAddNameValidationResult,
+    addNamesValidationResult,
+    setAddNamesValidationResult,
   ] = useState<NamedRangeValidationResult[]>([]);
-  const [isAddNameSuccess, setIsAddNameSuccess] = useState(false);
+  const [isAddNamesSuccess, setIsAddNamesSuccess] = useState(false);
 
   const showAddNamesModal = async (): Promise<void> => {
     setIsLoading(true);
@@ -133,15 +137,15 @@ const Home: FC = () => {
       setIsLoading(false);
       return;
     }
-    setIsAddNameModalOpen(true);
+    setIsAddNamesModalOpen(true);
     setIsLoading(false);
   };
 
   const hideAddNamesModal = async (shouldDeleteWorkSheet = true): Promise<void> => {
-    setIsAddNameModalOpen(false);
-    setAddNameErrorCode('');
-    setAddNameValidationResult([]);
-    setIsAddNameSuccess(false);
+    setIsAddNamesModalOpen(false);
+    setAddNamesErrorCode('');
+    setAddNamesValidationResult([]);
+    setIsAddNamesSuccess(false);
     setIsLoading(true);
     if (shouldDeleteWorkSheet) {
       await deleteAddNamedRangeForm();
@@ -161,8 +165,8 @@ const Home: FC = () => {
     const { success: isSuccess, errorCode, validationResult } = await addNamedRange();
     if (!isSuccess) {
       if (errorCode === 'FailedToAdd' || errorCode === 'InvalidInput' || errorCode === 'NothingToAdd') {
-        setAddNameErrorCode(errorCode);
-        setAddNameValidationResult(validationResult);
+        setAddNamesErrorCode(errorCode);
+        setAddNamesValidationResult(validationResult);
         return;
       }
 
@@ -172,16 +176,16 @@ const Home: FC = () => {
     }
 
     await deleteAddNamedRangeForm();
-    setIsAddNameSuccess(true);
+    setIsAddNamesSuccess(true);
   };
 
-  const addNameHowTo = (
+  const addNamesHowTo = (
     <>
       <p>{intl.formatMessage({ id: 'app.function.add.howTo' })}</p>
       <ModalDetailsWrapper>
         <HeroList
           items={Array.from({ length: 7 }, (_, index) => ({
-            primaryText: intl.formatMessage({ id: `app.function.add.tips${index + 1}` }),
+            primaryText: intl.formatMessage({ id: `app.function.namedRange.tips${index + 1}` }),
             icon: 'RadioBullet',
           }))}
         />
@@ -193,18 +197,18 @@ const Home: FC = () => {
     </>
   );
 
-  const addNameErrorDetailsList = useMemo(() => {
-    if (addNameErrorCode === 'InvalidInput') {
+  const addNamesErrorDetailsList = useMemo(() => {
+    if (addNamesErrorCode === 'InvalidInput') {
       const errorList: HeroListItem[] = [];
 
-      if (!addNameValidationResult.every(({ validations }) => validations.isNameNonEmpty)) {
+      if (!addNamesValidationResult.every(({ validations }) => validations.isNameNonEmpty)) {
         errorList.push({
           primaryText: intl.formatMessage({ id: 'app.function.add.error.missingName' }),
           icon: 'IncidentTriangle',
         });
       }
 
-      addNameValidationResult.forEach(({ name, validations }) => {
+      addNamesValidationResult.forEach(({ name, validations }) => {
         if (name && !validations.isNameValid) {
           errorList.push({
             primaryText: intl.formatMessage({ id: 'app.function.add.error.invalidName' }, { NAME: name }),
@@ -223,24 +227,28 @@ const Home: FC = () => {
       return errorList;
     }
 
-    if (addNameErrorCode === 'FailedToAdd') {
-      return addNameValidationResult.map(({ name, runtimeError }) => ({
+    if (addNamesErrorCode === 'FailedToAdd') {
+      return addNamesValidationResult.map(({ name, runtimeError }) => ({
         primaryText: `${name}: ${runtimeError}`,
         icon: 'IncidentTriangle',
       }));
     }
 
     return [];
-  }, [addNameValidationResult, addNameErrorCode]);
+  }, [addNamesValidationResult, addNamesErrorCode]);
 
-  const addNameErrorDetails = (
+  const addNamesErrorDetails = (
     <>
-      <p>{intl.formatMessage({ id: `app.function.add.error.${addNameErrorCode}` })}</p>
+      <p>
+        {addNamesErrorCode && intl.formatMessage({
+          id: `app.function.add.error.${addNamesErrorCode}`,
+        })}
+      </p>
       {
-        addNameValidationResult.length
+        addNamesValidationResult.length
           ? (
             <ModalDetailsWrapper>
-              <HeroList items={addNameErrorDetailsList} />
+              <HeroList items={addNamesErrorDetailsList} />
             </ModalDetailsWrapper>
           )
           : null
@@ -252,7 +260,7 @@ const Home: FC = () => {
     </>
   );
 
-  const addNameSuccessMessage = (
+  const addNamesSuccessMessage = (
     <>
       <p>{intl.formatMessage({ id: 'app.function.add.success' })}</p>
       <DialogFooter>
@@ -265,17 +273,17 @@ const Home: FC = () => {
     <Modal
       onDismiss={discardAddNameChanges}
       title={intl.formatMessage({ id: 'app.function.add' })}
-      isOpen={isAddNameModalOpen}
+      isOpen={isAddNamesModalOpen}
       modalId="addNameModal"
       isClosable={false}
-      theme={isAddNameSuccess ? 'success' : addNameErrorCode ? 'failure' : undefined}
+      theme={isAddNamesSuccess ? 'success' : addNamesErrorCode ? 'failure' : undefined}
     >
       {
-        isAddNameSuccess
-          ? addNameSuccessMessage
-          : addNameErrorCode
-            ? addNameErrorDetails
-            : addNameHowTo
+        isAddNamesSuccess
+          ? addNamesSuccessMessage
+          : addNamesErrorCode
+            ? addNamesErrorDetails
+            : addNamesHowTo
       }
     </Modal>
   );
@@ -345,12 +353,167 @@ const Home: FC = () => {
   );
 
   /**
-   * Vaidate Name ranges
+   * Edit Name ranges
    */
-  const editNamedRanges = async (): Promise<void> => {
-    // TODO: write something
+  const [isEditNamesModalOpen, setIsEditNamesModalOpen] = useState(false);
+  const [
+    editNamesErrorCode,
+    setEditNamesErrorCode,
+  ] = useState<'' | 'FailedToEdit' | 'NothingToEdit'>('');
+  const [
+    editNamesOperationResult,
+    setEditNamesOperationResult,
+  ] = useState<EditNamedRangesOperationResult[]>([]);
+  const [isEditNamesSuccess, setIsEditNamesSuccess] = useState(false);
+
+  const showEditNamesModal = async (): Promise<void> => {
+    setIsLoading(true);
+    const { success: isInsertSuccess, errorCode } = await insertEditNamedRangesForm();
+    if (!isInsertSuccess) {
+      if (errorCode === 'NoExistingNamedRanges') {
+        setErrorMessage(intl.formatMessage({ id: 'app.function.edit.error.NoExistingNamedRanges' }));
+      } else {
+        setErrorMessage(intl.formatMessage({ id: 'app.function.edit.error.insertForm' }, { ERROR_CODE: errorCode }));
+      }
+      setIsLoading(false);
+      return;
+    }
+    setIsEditNamesModalOpen(true);
+    setIsLoading(false);
   };
 
+  const hideEditNamesModal = async (shouldDeleteWorkSheet = true): Promise<void> => {
+    setIsEditNamesModalOpen(false);
+    setEditNamesErrorCode('');
+    setEditNamesOperationResult([]);
+    setIsEditNamesSuccess(false);
+    setIsLoading(true);
+    if (shouldDeleteWorkSheet) {
+      await deleteEditNamedRangeForm();
+    }
+    setIsLoading(false);
+  };
+
+  const closeEditNameSuccessModal = (): void => {
+    hideEditNamesModal(false);
+  };
+
+  const discardEditNameChanges = (): void => {
+    hideEditNamesModal(true);
+  };
+
+  const editNames = async (): Promise<void> => {
+    const { success: isSuccess, errorCode, operationResult } = await editNamedRange();
+    if (!isSuccess) {
+      if (errorCode === 'FailedToEdit' || errorCode === 'NothingToEdit') {
+        setEditNamesErrorCode(errorCode);
+        setEditNamesOperationResult(operationResult);
+        return;
+      }
+
+      setErrorMessage(intl.formatMessage({ id: 'app.function.edit.error' }, { ERROR_CODE: errorCode }));
+      await hideEditNamesModal();
+      return;
+    }
+
+    await deleteEditNamedRangeForm();
+    setIsEditNamesSuccess(true);
+  };
+
+  const editNamesHowTo = (
+    <>
+      <p>{intl.formatMessage({ id: 'app.function.edit.howTo' })}</p>
+      <ModalDetailsWrapper>
+        <HeroList
+          items={Array.from({ length: 7 }, (_, index) => ({
+            primaryText: intl.formatMessage({ id: `app.function.namedRange.tips${index + 1}` }),
+            icon: 'RadioBullet',
+          }))}
+        />
+      </ModalDetailsWrapper>
+      <DialogFooter>
+        <DefaultButton onClick={discardEditNameChanges} text={intl.formatMessage({ id: 'app.modal.cancel' })} />
+        <DefaultButton onClick={editNames} text={intl.formatMessage({ id: 'app.modal.edit' })} />
+      </DialogFooter>
+    </>
+  );
+
+  const editNamesErrorDetailsList = useMemo(() => {
+    if (editNamesErrorCode === 'FailedToEdit') {
+      return editNamesOperationResult.map(({ oldName, runtimeError }) => ({
+        primaryText: intl.formatMessage(
+          { id: 'app.function.edit.error.runtimeError' },
+          { NAME: oldName, ERROR: runtimeError },
+        ),
+        icon: 'IncidentTriangle',
+      }));
+    }
+
+    return [];
+  }, [editNamesOperationResult, editNamesErrorCode]);
+
+  const editNamesErrorDetails = (
+    <>
+      <p>
+        {editNamesErrorCode && intl.formatMessage({
+          id: `app.function.edit.error.${editNamesErrorCode}`,
+        })}
+      </p>
+      {
+        editNamesOperationResult.length
+          ? (
+            <ModalDetailsWrapper>
+              <HeroList items={editNamesErrorDetailsList} />
+            </ModalDetailsWrapper>
+          )
+          : null
+      }
+      <DialogFooter>
+        {
+          editNamesErrorCode === 'NothingToEdit'
+            ? (
+              <>
+                <DefaultButton onClick={discardEditNameChanges} text={intl.formatMessage({ id: 'app.modal.close' })} />
+                <DefaultButton onClick={editNames} text={intl.formatMessage({ id: 'app.modal.retry' })} />
+              </>
+            )
+            : <DefaultButton onClick={discardEditNameChanges} text={intl.formatMessage({ id: 'app.modal.terminate' })} />
+        }
+      </DialogFooter>
+    </>
+  );
+
+  const editNamesSuccessMessage = (
+    <>
+      <p>{intl.formatMessage({ id: 'app.function.edit.success' })}</p>
+      <DialogFooter>
+        <DefaultButton onClick={closeEditNameSuccessModal} text={intl.formatMessage({ id: 'app.modal.ok' })} />
+      </DialogFooter>
+    </>
+  );
+
+  const editNamesModal = (
+    <Modal
+      onDismiss={discardEditNameChanges}
+      title={intl.formatMessage({ id: 'app.function.edit' })}
+      isOpen={isEditNamesModalOpen}
+      modalId="editNameModal"
+      isClosable={false}
+      theme={isEditNamesSuccess ? 'success' : editNamesErrorCode ? 'failure' : undefined}
+    >
+      {
+        isEditNamesSuccess
+          ? editNamesSuccessMessage
+          : editNamesErrorCode
+            ? editNamesErrorDetails
+            : editNamesHowTo
+      }
+    </Modal>
+  );
+
+  /**
+   * Home UI
+   */
   return (
     <div>
       <Header
@@ -375,7 +538,7 @@ const Home: FC = () => {
         </FullwidthButton>
         <FullwidthButton
           iconProps={{ iconName: 'PageEdit' }}
-          onClick={editNamedRanges}
+          onClick={showEditNamesModal}
         >
           {intl.formatMessage({ id: 'app.function.edit' })}
         </FullwidthButton>
@@ -388,6 +551,7 @@ const Home: FC = () => {
       </MainWrapper>
       <LoadingModal isLoading={isLoading} message="Loading..." />
       {addNamesModal}
+      {editNamesModal}
       {errorDialog}
       {validateNamedRangesDialog}
     </div>

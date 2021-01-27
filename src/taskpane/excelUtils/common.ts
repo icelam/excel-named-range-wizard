@@ -30,13 +30,13 @@ export const getNamedRanges = async (): Promise<NamedRanges | null> => {
 export const validateNamedRangesName = (value: string): boolean => (
   value.length > 0
   && value.length <= 255
-  && /[a-z_\\]/i.test(value[0])
-  && (value.length === 1 || /[a-z0-9?._\\]+/i.test(value.slice(1)))
-  && !value.includes(' ')
   && value !== 'R'
   && value !== 'C'
   && value !== '\\?'
   && value !== '\\\\'
+  && !value.includes(' ')
+  && /[a-z_\\]/i.test(value[0])
+  && (value.length === 1 || /[a-z0-9?._\\]+/i.test(value.slice(1)))
 );
 
 export const addFormTemplate = async (
@@ -50,31 +50,33 @@ export const addFormTemplate = async (
       throw new Error('FailedToGetNames');
     }
 
+    const header = [['Current Name', 'Current Formula', 'Type', 'Scope', 'New Name', 'New Formula']];
+
     const rows = namesMap.items
       .filter(({ name }) => name !== formNamedRange)
       .map(({
         name, formula, type, scope,
-      }) => [name, formula, type, scope, '', '']);
+      }) => [name, formula, type, scope]);
 
     const sheet = context.workbook.worksheets.getItem(worksheetName);
     sheet.activate();
     const range = sheet.getRange('$A1:$F9999');
 
-    const values = [
-      ['Current Name', 'Current Formula', 'Type', 'Scope', 'New Name', 'New Formula'],
-      ...rows,
-    ];
     const headerRange = range.getRow(0);
 
     // Format Cell to "Text"
     range.numberFormat = [['@']];
 
-    sheet.getRange('A1').getResizedRange(values.length - 1, values[0].length - 1).values = values;
+    sheet.getRange('A1').getResizedRange(header.length - 1, header[0].length - 1).values = header;
+
+    if (rows.length) {
+      sheet.getRange('A2').getResizedRange(rows.length - 1, rows[0].length - 1).values = rows;
+    }
 
     // Header Styles
     headerRange.format.font.bold = true;
     headerRange.format.font.color = '#ffffff';
-    headerRange.format.fill.color = '#3B8CFF';
+    headerRange.format.fill.color = worksheetName.includes('Add') ? '#3B8CFF' : '#D533A3';
 
     // Cell borders
     range.format.borders.getItem('InsideHorizontal').style = 'Continuous';
@@ -91,7 +93,11 @@ export const addFormTemplate = async (
   });
 };
 
-export const insertForm = async (worksheetName: string, formNamedRange: string): Promise<{
+export const insertForm = async (
+  worksheetName: string,
+  formNamedRange: string,
+  formNamedRangeAddress: string,
+): Promise<{
   success: boolean;
   errorCode: string;
 }> => {
@@ -125,7 +131,7 @@ export const insertForm = async (worksheetName: string, formNamedRange: string):
         await context.sync();
       }
 
-      context.workbook.names.add(formNamedRange, sheet.getRange('$E2:$F9999'));
+      context.workbook.names.add(formNamedRange, sheet.getRange(formNamedRangeAddress));
       await context.sync();
 
       await addFormTemplate(worksheetName, formNamedRange);
