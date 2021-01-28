@@ -4,11 +4,12 @@ import {
 
 const WORKSHEET_NAME = 'Add Names Wizard';
 const FORM_NAMED_RANGE = 'ADD_NAMED_RANGE_FORM';
-const FORM_NAMED_RANGE_ADDRESS = '$E2:$F9999';
+const FORM_NAMED_RANGE_ADDRESS = '$E2:$G9999';
 
 export interface NamedRangeValidationResult {
   name: string;
   formula: string;
+  scope: string;
   validations: {
     isNameNonEmpty: boolean;
     isFormulaNonEmpty: boolean;
@@ -43,13 +44,14 @@ export const addNamedRange = async (): Promise<{
     range.load('values');
     await context.sync();
 
-    const rangesToAdd = JSON.parse(JSON.stringify(range.values))
-      .filter((row) => !!row[0] || !!row[1])
+    const rangesToAdd: NamedRangeValidationResult[] = JSON.parse(JSON.stringify(range.values))
+      .filter((row) => Boolean(row[0] || row[1] || row[2]))
       .map((row) => {
-        const [name, formula] = row;
+        const [name, formula, scope] = row;
         return ({
           name,
           formula,
+          scope: scope || 'Workbook',
           validations: {
             isNameNonEmpty: !!name,
             isFormulaNonEmpty: !!formula,
@@ -65,8 +67,8 @@ export const addNamedRange = async (): Promise<{
       return { success: false, errorCode: 'NothingToAdd', validationResult: [] };
     }
 
-    const invalidRanges = [];
-    const validRanges = [];
+    const invalidRanges: NamedRangeValidationResult[] = [];
+    const validRanges: NamedRangeValidationResult[] = [];
 
     rangesToAdd.forEach((rangeDefinition) => {
       const isRangeDefinationValid = Object.entries(rangeDefinition.validations)
@@ -85,11 +87,14 @@ export const addNamedRange = async (): Promise<{
 
     const failedOperation = [];
 
-    // eslint-disable-next-line no-restricted-syntax
     for (const validRange of validRanges) {
       try {
-        context.workbook.names.add(validRange.name, validRange.formula);
-        // eslint-disable-next-line no-await-in-loop
+        const { name, formula, scope } = validRange;
+        const namesContext = (scope === 'Workbook'
+          ? context.workbook
+          : context.workbook.worksheets.getItem(scope)).names;
+        namesContext.add(name, formula);
+
         await context.sync();
       } catch (error) {
         failedOperation.push({ ...validRange, runtimeError: error.message });

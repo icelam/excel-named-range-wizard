@@ -8,17 +8,69 @@ export type NamedRangeType = {
   visible: boolean;
 };
 
+export type WorksheetType = {
+  enableCalculation: boolean;
+  id: string;
+  name: string;
+  position: number;
+  showGridlines: boolean;
+  showHeadings: boolean;
+  standardHeight: number;
+  standardWidth: number;
+  tabColor: string;
+  visibility: Excel.SheetVisibility | 'Visible' | 'Hidden' | 'VeryHidden';
+}
+
 interface NamedRanges {
   items: NamedRangeType[];
 }
 
-export const getNamedRanges = async (): Promise<NamedRanges | null> => {
+interface Worksheets {
+  items: WorksheetType[];
+}
+
+const getAllExcelWorkSheetName = async (): Promise<Worksheets | null> => {
   const result = await Excel.run(async (context) => {
-    const { names } = context.workbook;
-    names.load();
+    const { worksheets } = context.workbook;
+    worksheets.load('items');
     await context.sync();
 
-    return JSON.parse(JSON.stringify(names));
+    return JSON.parse(JSON.stringify(worksheets)) as Worksheets;
+  }).catch((error) => {
+    console.error(error);
+    return null;
+  });
+
+  return result;
+};
+
+export const getNamedRanges = async (): Promise<NamedRanges | null> => {
+  const result = await Excel.run(async (context) => {
+    const namedRanges: NamedRangeType[][] = [];
+
+    // Workbook ranges
+    const { names: workbookNames } = context.workbook;
+    workbookNames.load();
+    await context.sync();
+    const workbookNamedRanges = JSON.parse(JSON.stringify(workbookNames)) as NamedRanges;
+    namedRanges.push(workbookNamedRanges.items);
+
+    // Worksheet ranges
+    const { items: availableWorksheets } = (await getAllExcelWorkSheetName()) ?? {};
+    for (const worksheet of (availableWorksheets ?? [])) {
+      const { names: worksheetNameds } = context.workbook.worksheets.getItem(worksheet.name);
+      worksheetNameds.load();
+      await context.sync();
+      const worksheetNamedRanges = JSON.parse(JSON.stringify(worksheetNameds)) as NamedRanges;
+
+      namedRanges.push(
+        worksheetNamedRanges.items.map((item) => ({ ...item, scope: worksheet.name })),
+      );
+    }
+
+    return {
+      items: namedRanges.flat(),
+    };
   }).catch((error) => {
     console.error(error);
     return null;
@@ -50,7 +102,7 @@ export const addFormTemplate = async (
       throw new Error('FailedToGetNames');
     }
 
-    const header = [['Current Name', 'Current Formula', 'Type', 'Scope', 'New Name', 'New Formula']];
+    const header = [['Current Name', 'Current Formula', 'Type', 'Scope', 'New Name', 'New Formula', 'New Scope']];
 
     const rows = namesMap.items
       .filter(({ name }) => name !== formNamedRange)
@@ -60,7 +112,7 @@ export const addFormTemplate = async (
 
     const sheet = context.workbook.worksheets.getItem(worksheetName);
     sheet.activate();
-    const range = sheet.getRange('$A1:$F9999');
+    const range = sheet.getRange('$A1:$G9999');
 
     const headerRange = range.getRow(0);
 
@@ -90,6 +142,21 @@ export const addFormTemplate = async (
     range.format.autofitColumns();
     range.getColumn(4).format.columnWidth = 300;
     range.getColumn(5).format.columnWidth = 300;
+
+    // Validation rules
+    const { items: worksheetNames } = (await getAllExcelWorkSheetName()) ?? {};
+    const workbookNameValidations = (worksheetNames ?? [])
+      .map(({ name }) => name)
+      .filter((name) => name !== worksheetName)
+      .join(',');
+    range.getColumn(6).dataValidation.rule = {
+      list: {
+        inCellDropDown: true,
+        source: `="Workbook,${workbookNameValidations}"`,
+      },
+    };
+
+    await context.sync();
   });
 };
 
