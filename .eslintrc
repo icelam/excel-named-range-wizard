@@ -55,7 +55,7 @@
   },
   "overrides": [
     {
-      "files": ["webpack.config.js"],
+      "files": ["webpack.config.js", "commitlint.config.js", "scripts/**/*"],
       "env": { "node": true },
       "rules": {
         "@typescript-eslint/no-var-requires": ["off"],

@@ -6,13 +6,13 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 
 const urlDev = 'https://localhost:3000/';
-const urlProd = 'https://icelam.github.io/excel-named-range-wizard'; // CHANGE THIS TO YOUR PRODUCTION DEPLOYMENT LOCATION
+const urlProd = 'https://icelam.github.io/excel-named-range-wizard/';
 
 module.exports = async (env, options) => {
   const dev = options.mode === 'development';
   const buildType = dev ? 'dev' : 'prod';
   const config = {
-    devtool: 'source-map',
+    devtool: buildType === 'dev' ? 'source-map' : false,
     entry: {
       vendor: [
         'react',
@@ -25,6 +25,10 @@ module.exports = async (env, options) => {
         './src/taskpane/index.tsx',
       ],
       commands: './src/commands/commands.ts',
+    },
+    output: {
+      filename: 'assets/js/[name].[hash].js',
+      chunkFilename: 'assets/js/[name].[hash].chunk.js',
     },
     resolve: {
       extensions: ['.ts', '.tsx', '.html', '.js'],
@@ -41,7 +45,10 @@ module.exports = async (env, options) => {
         },
         {
           test: /\.css$/,
-          use: ['style-loader', 'css-loader'],
+          use: ExtractTextPlugin.extract({
+            fallback: 'style-loader',
+            use: 'css-loader',
+          }),
         },
         {
           test: /\.(png|jpg|jpeg|gif)$/,
@@ -56,10 +63,6 @@ module.exports = async (env, options) => {
       new CleanWebpackPlugin(),
       new CopyWebpackPlugin({
         patterns: [
-          {
-            to: 'global.css',
-            from: './src/taskpane/styles/global.css',
-          },
           {
             to: `[name].${buildType}.[ext]`,
             from: 'manifest*.xml',

@@ -25,7 +25,10 @@
     "stop": "office-addin-debugging stop manifest.xml",
     "validate": "office-addin-manifest validate manifest.xml",
     "watch": "webpack --mode development --watch",
-    "dev:mac": "concurrently \"npm run dev-server\" \"npm start\""
+    "dev:mac": "concurrently \"npm run dev-server\" \"npm start\"",
+    "first-release": "npx standard-version --commit-all --tag-prefix v --release-as 1.0.0 --infile CHANGELOG.md",
+    "release": "npx standard-version --commit-all --tag-prefix v --infile CHANGELOG.md",
+    "extract-latest-change-log": "node scripts/extractLatestChangeLog.js"
   },
   "dependencies": {
     "core-js": "^3.1.4",
