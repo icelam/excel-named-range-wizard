@@ -73,6 +73,10 @@ module.exports = async (env, options) => {
               return content.toString().replace(new RegExp(urlDev, 'g'), urlProd);
             },
           },
+          {
+            to: 'assets',
+            from: 'assets',
+          },
         ],
       }),
       new ExtractTextPlugin('[name].[hash].css'),

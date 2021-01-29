@@ -23,11 +23,6 @@ import {
   EditNamedRangesOperationResult,
 } from '../excelUtils';
 
-// images references in the manifest
-import '../../../assets/icon-16.png';
-import '../../../assets/icon-32.png';
-import '../../../assets/icon-80.png';
-
 const LoadingModal = styled<{isLoading: boolean}>(Progress)`
   position: fixed;
   top: 0;
