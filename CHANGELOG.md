@@ -1,5 +1,12 @@
 # Changelog
 
+### [1.0.1](https://github.com/icelam/excel-named-range-wizard/compare/v1.0.0...v1.0.1) (2021-01-29)
+
+
+### Bug Fixes
+
+* missing logo files on production ([ebdd32a](https://github.com/icelam/excel-named-range-wizard/commit/ebdd32a0649ffdac2b2833696a12fb29807f79d5))
+
 ## 1.0.0 (2021-01-29)
 
 
