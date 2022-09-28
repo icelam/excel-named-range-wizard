@@ -17,7 +17,7 @@
 
 To start (Windows):
 ```bash
-nom run start
+npm run start
 ```
 
 
