@@ -9,13 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@main
+        uses: actions/checkout@v3
       - name: Setup Node.js version
-        uses: actions/setup-node@main
+        uses: actions/setup-node@v3
         with:
-          node-version: 14.x
+          node-version-file: '.nvmrc'
       - name: Cache node modules
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         env:
           cache-name: cache-node-modules
         with:
@@ -35,7 +35,7 @@ jobs:
       - name: Get short Github SHA
         id: vars
         run: |
-          echo ::set-output name=sha_short::$(git rev-parse --short ${{ github.sha }})
+          echo "sha_short=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_OUTPUT
       - name: Deploy to Github pages
         uses: JamesIves/github-pages-deploy-action@releases/v3
         with:
